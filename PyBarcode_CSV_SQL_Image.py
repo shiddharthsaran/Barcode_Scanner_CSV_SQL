@@ -208,8 +208,11 @@ def execute(conn,cur,barcodedict,barcode_folder_name,barcode_marked_folder_name,
                     continue
                 else:
                     create_barcode_marked_images(conn,cur,img,barcodes,file_name,barcodedict,barcode_folder_name,barcode_marked_folder_name,output_folder_name)
-        backup("Barcode_CSV.csv","Barcode_SQL.sqlite",barcodedict,backup_folder_name)
+        if(len(barcodedict)>1):
+            backup("Barcode_CSV.csv","Barcode_SQL.sqlite",barcodedict,backup_folder_name)
+            print("Backed Up")
         cleanslate_protocol(barcode_folder_name,barcode_marked_folder_name,output_folder_name)
+        print("It is a Clean Slate")
         cv2.destroyAllWindows()
     else:
         download_barcodes(barcode_folder_name)
