@@ -6,6 +6,7 @@ import pandas as pd
 import datetime
 import os
 import sqlite3
+import wget
 
 def dir_check(folder_name):
     if(os.path.isdir(folder_name)):
@@ -25,7 +26,9 @@ def updating_csv(output_folder_name,barcodedict,file_name="default creation/back
 
 def updating_sql(conn,cur,new_barcodeDict,file_name="default creation/backup"):
     print("Updating SQL with "+file_name)
-        
+    
+    cur.execute('''DELETE FROM Barcodes''')
+    
     for barcode,datetime in new_barcodeDict.items():
         cur.execute('''INSERT OR IGNORE INTO Barcodes (Barcode,Datetime_of_Entering)VALUES ( ?,? )''',(barcode,datetime,))
     conn.commit()   
@@ -43,29 +46,26 @@ def confirmation_and_entering_barcodes(img):
         print("Not Selected")
         cv2.destroyWindow("Confirmation Window")
         return False
-    
-def update(conn,cur,barcodedict,new_barcodeDict,output_folder_name,file_name):
-    updating_csv(output_folder_name,barcodedict,file_name)
-    updating_sql(conn,cur,new_barcodeDict,file_name)
 
+def update(conn,cur,barcodedict,output_folder_name,file_name):
+    updating_csv(output_folder_name,barcodedict,file_name)
+    updating_sql(conn,cur,barcodedict,file_name)   
+    
 def checking_barcodes(conn,cur,barcodes,file_name,barcodedict,barcode_folder_name,barcode_marked_folder_name,output_folder_name):
     print("Checking Barcodes for "+file_name)
     
-    new_barcodeDict=dict()
     for barcode in barcodes:
         barcodeData=barcode.data.decode("utf-8")
         if(barcodeData in barcodedict):
             continue
         else:
             timing=datetime.datetime.now()
-            new_barcodeDict[barcodeData]=timing
             barcodedict[barcodeData]=timing
     
-    update(conn,cur,barcodedict,new_barcodeDict,output_folder_name,file_name)
+    update(conn,cur,barcodedict,output_folder_name,file_name)
     
 def create_barcode_marked_images(conn,cur,img,barcodes,file_name,barcodedict,barcode_folder_name,barcode_marked_folder_name,output_folder_name):
     print("Creating Barcode Marked Images for "+file_name)
-    
     img1=img.copy()
     if(len(barcodes)<1):
         return
@@ -103,6 +103,7 @@ def check_barcodedict(barcodedict,barcodes):
 
 def cleanslate_protocol(barcode_folder_name,barcode_marked_folder_name,output_folder_name):
     print("Clean Slate Protocol")
+    
     if(os.path.isdir(barcode_folder_name)):
         if(len(os.listdir(barcode_folder_name+"/"))>0):
             pass
@@ -152,6 +153,15 @@ def cleanslate_protocol(barcode_folder_name,barcode_marked_folder_name,output_fo
     
     return
 
+def download_barcodes(barcode_folder_name):
+    print("Downloading")
+    urls=["http://free-barcode.com/howto/images/1Dbarcode2Dbarcode01.PNG",
+          "https://smtnet.com/media/images/Microscan-Multiple-Barcodes.jpg",
+          "https://cdn3.vectorstock.com/i/1000x1000/00/97/set-of-different-barcodes-isolated-on-white-vector-17020097.jpg",
+          "https://images.onlinelabels.com/images/learning-center/articles/nine_barcode_types.png"]
+    for url in urls:
+        file=wget.download(url,barcode_folder_name)
+
 def backup(csv_file_name,sql_file_name,barcodedict,backup_folder_name):
     print("Backing Up")
     
@@ -183,16 +193,15 @@ def backup(csv_file_name,sql_file_name,barcodedict,backup_folder_name):
 
 def execute(conn,cur,barcodedict,barcode_folder_name,barcode_marked_folder_name,output_folder_name,backup_folder_name):
     print("Executing")
-    
     cap=cv2.VideoCapture(0)
     iterate=0
     
     dir_check(barcode_folder_name)
-    
     while True:
         ret,frame=cap.read()
         cv2.namedWindow("Main Window")
         cv2.imshow("Main Window",frame)
+        #print(os.listdir("Output_Folder/"))
         if cv2.waitKey(1) & 0xFF==ord('c'):
             file_name="barcode_img_"+str(iterate)+".png"
             barcodes=pyzbar.decode(frame)
@@ -205,9 +214,10 @@ def execute(conn,cur,barcodedict,barcode_folder_name,barcode_marked_folder_name,
             iterate+=1
         elif cv2.waitKey(1) & 0xFF==ord("q"):
             print("Quitting")
-     
-            backup("Barcode_CSV.csv","Barcode_SQL.sqlite",barcodedict,backup_folder_name)
-            print("Backed Up")
+            
+            if(len(barcodedict)>0):
+                backup("Barcode_CSV.csv","Barcode_SQL.sqlite",barcodedict,backup_folder_name)
+                print("Backed Up")
             
             cleanslate_protocol(barcode_folder_name,barcode_marked_folder_name,output_folder_name)
             print("It's a Clean Slate")
@@ -243,7 +253,6 @@ def initialize_db(sql_file_name,barcodedict,output_folder_name):
 
 def retrieve_csv_data(csv_file_name,barcodedict,output_folder_name):
     print("Retrieving CSV Data")
-
     try:
         old_df=pd.read_csv(output_folder_name+"/"+csv_file_name)
         temp_barcodedict=old_df.set_index("Barcode").T.to_dict("list")
@@ -255,7 +264,7 @@ def retrieve_csv_data(csv_file_name,barcodedict,output_folder_name):
         return barcodedict
     except Exception as e:
         print(e)
-        return barcodedict   
+        return barcodedict 
 
 def retrieve_backup_data(csv_file_name,sql_file_name,backup_folder_name):
     print("Retrieving Backup Data")
