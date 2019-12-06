@@ -201,7 +201,6 @@ def execute(conn,cur,barcodedict,barcode_folder_name,barcode_marked_folder_name,
         ret,frame=cap.read()
         cv2.namedWindow("Main Window")
         cv2.imshow("Main Window",frame)
-        #print(os.listdir("Output_Folder/"))
         if cv2.waitKey(1) & 0xFF==ord('c'):
             file_name="barcode_img_"+str(iterate)+".png"
             barcodes=pyzbar.decode(frame)
