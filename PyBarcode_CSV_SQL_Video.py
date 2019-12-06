@@ -153,15 +153,6 @@ def cleanslate_protocol(barcode_folder_name,barcode_marked_folder_name,output_fo
     
     return
 
-def download_barcodes(barcode_folder_name):
-    print("Downloading")
-    urls=["http://free-barcode.com/howto/images/1Dbarcode2Dbarcode01.PNG",
-          "https://smtnet.com/media/images/Microscan-Multiple-Barcodes.jpg",
-          "https://cdn3.vectorstock.com/i/1000x1000/00/97/set-of-different-barcodes-isolated-on-white-vector-17020097.jpg",
-          "https://images.onlinelabels.com/images/learning-center/articles/nine_barcode_types.png"]
-    for url in urls:
-        file=wget.download(url,barcode_folder_name)
-
 def backup(csv_file_name,sql_file_name,barcodedict,backup_folder_name):
     print("Backing Up")
     
